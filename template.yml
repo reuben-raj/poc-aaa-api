@@ -1,0 +1,72 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  poc-aaa-api
+
+Globals:
+  Function:
+    Runtime: nodejs18.x
+    MemorySize: 128
+    Timeout: 60
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        REGION: ap-southeast-1
+        PGDATABASE: aaa
+        LOG_LEVEL: DEBUG
+    Layers:
+      - !Ref common
+Parameters:
+  AppClientId:
+    Type: String
+    Description: The application client used in Cognito
+    Default: "xxxxxxxxxxxxxxxxxxxxxxxxxx"
+  AppClientSecret:
+    Type: String
+    Description: The application client secret used in Cognito
+    Default: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  UserPoolId:
+    Type: String
+    Description: The Cognito user pool Id
+    Default: "us-east-2_xxxxxxxxx"
+Resources:
+  common:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: common
+      Description: Dependencies for Lambda functions
+      ContentUri: dist/src/common
+      CompatibleArchitectures:
+        - x86_64
+      CompatibleRuntimes:
+        - nodejs18.x
+    Metadata:
+      BuildMethod: nodejs18.x
+      BuildArchitecture: x86_64
+
+ apiOAuth2:
+   Type: AWS::Serverless::Function
+   Properties:
+     CodeUri: src/api-oauth2/
+     Handler: index.handler
+     Environment:
+       Variables:
+         APP_CLIENT_ID: !Ref AppClientId
+         APP_CLIENT_SECRET: !Ref AppClientSecret
+         USER_POOL_ID: !Ref UserPoolId
+     Events:
+       apiAuth:
+         Type: Api
+         Properties:
+           Path: /oauth2/token
+           Method: post
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Format: cjs
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+          - index.ts
